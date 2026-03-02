@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     MAIL_PORT: int
     MAIL_SERVER: str
 
+    # Optional OAuth client configuration
+    GOOGLE_CLIENT_ID: str | None = None
+    MICROSOFT_CLIENT_ID: str | None = None
+    APPLE_CLIENT_ID: str | None = None
+
     class Config:
         env_file = ".env"
 

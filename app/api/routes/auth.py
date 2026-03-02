@@ -1,25 +1,30 @@
 from datetime import datetime, timedelta
+from typing import Literal
+
+import requests
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app import db
+from app.core.config import settings
+from app.core.limiter import limiter
+from app.core.security import create_access_token
 from app.db.session import get_db
+from app.models.auth_token import AuthToken
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.models.auth_token import AuthToken
 from app.schemas.auth import (
     AuthStartRequest,
     AuthStartResponse,
     AuthVerifyRequest,
     AuthVerifyResponse,
+    OAuthTokenPayload,
 )
-from app.utils.tokens import generate_auth_token
 from app.services.email import send_auth_email
-from app.core.security import create_access_token
+from app.utils.tokens import generate_auth_token
 from app.utils.tokens import generate_refresh_token
-from app.core.limiter import limiter
 
 # from app.core.security import create_refresh_token
 
@@ -176,3 +181,136 @@ def refresh_access_token(
     # 4. Issue a new access token
     access_token = create_access_token(subject=str(token.user_id))
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+def _get_email_from_google(access_token: str) -> str:
+    resp = requests.get(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        headers={"Authorization": f"Bearer ${access_token}"},
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to verify Google token")
+    data = resp.json()
+    email = data.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Google account email not found")
+    return email.lower()
+
+
+def _get_email_from_microsoft(access_token: str) -> str:
+    resp = requests.get(
+        "https://graph.microsoft.com/v1.0/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=400, detail="Failed to verify Microsoft token"
+        )
+    data = resp.json()
+    # Microsoft Graph can return email in different fields depending on account type
+    email = (
+        data.get("mail")
+        or data.get("userPrincipalName")
+        or (data.get("otherMails") or [None])[0]
+    )
+    if not email:
+        raise HTTPException(
+            status_code=400, detail="Microsoft account email not found"
+        )
+    return email.lower()
+
+
+def _get_email_from_apple(id_token: str) -> str:
+    from jose import jwt
+
+    try:
+        # For now we only parse claims without signature verification.
+        # For production, you should verify the signature and audience using Apple's keys.
+        claims = jwt.get_unverified_claims(id_token)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid Apple identity token")
+
+    email = claims.get("email")
+    if not email:
+        raise HTTPException(status_code=400, detail="Apple account email not found")
+    return email.lower()
+
+
+def _get_email_from_oauth(
+    provider: Literal["google", "apple", "microsoft"], payload: OAuthTokenPayload
+) -> str:
+    provider = provider.lower()
+    if provider == "google":
+        if not payload.access_token:
+            raise HTTPException(
+                status_code=400, detail="Google access_token is required"
+            )
+        return _get_email_from_google(payload.access_token)
+    if provider == "microsoft":
+        if not payload.access_token:
+            raise HTTPException(
+                status_code=400, detail="Microsoft access_token is required"
+            )
+        return _get_email_from_microsoft(payload.access_token)
+    if provider == "apple":
+        if not payload.id_token:
+            raise HTTPException(status_code=400, detail="Apple id_token is required")
+        return _get_email_from_apple(payload.id_token)
+
+    raise HTTPException(status_code=400, detail="Unsupported OAuth provider")
+
+
+@router.post("/oauth/{provider}", response_model=AuthVerifyResponse)
+def oauth_login(
+    provider: Literal["google", "apple", "microsoft"],
+    payload: OAuthTokenPayload,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """
+    OAuth login endpoint for Google, Apple, and Microsoft.
+    The frontend is responsible for completing the provider-specific OAuth flow
+    and sending an access_token (Google, Microsoft) or id_token (Apple) here.
+    """
+    email = _get_email_from_oauth(provider, payload)
+
+    # Find or create user
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user = User(email=email)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Issue JWT + refresh token, reusing existing email-code auth logic
+    access_token = create_access_token(subject=str(user.id))
+    refresh_token_value = generate_refresh_token()
+
+    refresh_token = RefreshToken(
+        user_id=user.id,
+        token=refresh_token_value,
+        expires_at=datetime.utcnow() + timedelta(days=7),
+    )
+
+    db.add(refresh_token)
+    db.commit()
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token_value,
+        httponly=True,
+        secure=False,  # Set True in production (HTTPS only)
+        samesite="lax",
+        max_age=60 * 60 * 24 * 7,
+        path="/",
+    )
+
+    return {
+        "user_id": str(user.id),
+        "access_token": access_token,
+        "refresh_token": refresh_token_value,
+        "token_type": "bearer",
+    }
