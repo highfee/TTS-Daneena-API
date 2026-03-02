@@ -1,0 +1,17 @@
+alembic
+espnet
+fastapi
+fastapi-mail
+Jinja2
+psycopg2-binary
+pydantic
+pydantic-settings
+python-dotenv
+python-jose[cryptography]
+python-multipart
+slowapi
+soundfile
+sqlalchemy
+torch
+transformers
+uvicorn

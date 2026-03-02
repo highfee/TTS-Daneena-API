@@ -1,0 +1,11 @@
+{
+    "cSpell.words": [
+        "highfee"
+    ],
+    "python.testing.pytestArgs": [
+        "app"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.defaultInterpreterPath": ".\\venv\\Scripts\\python.exe"
+}
