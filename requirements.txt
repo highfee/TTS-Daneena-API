@@ -3,6 +3,7 @@ espnet
 fastapi
 fastapi-mail
 Jinja2
+nltk
 psycopg2-binary
 pydantic
 pydantic-settings
