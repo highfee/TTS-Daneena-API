@@ -1,0 +1,75 @@
+# ── Environment & secrets ─────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.whl
+
+# ── Virtual environment ───────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Generated media ───────────────────────────────────────────────────────
+app/media/
+
+# ── Dataset & audio files ─────────────────────────────────────────────────
+/Emotion Speech Dataset/
+/__MACOSX/
+/data/
+*.wav
+*.mp3
+*.flac
+*.zip
+*.tar
+*.tar.gz
+*.npz
+
+# ── Training artefacts ────────────────────────────────────────────────────
+/training/
+*.pth
+*.pt
+*.ckpt
+*.log
+
+# ── Misc project notes (not needed on GitHub) ─────────────────────────────
+chapters_3_5.txt
+corrections.txt
+suggestions.txt
+note.md
+improvement.md
+Daneena Update.docx
+README.pdf
+24.0
+
+# ── Test scripts ──────────────────────────────────────────────────────────
+test_db.py
+test_fastapi_mail.py
+test_smtp.py
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Dev tooling ───────────────────────────────────────────────────────────
+.pyre_configuration
+pyrightconfig.json
+/scripts/
+
+# ── Claude Code ───────────────────────────────────────────────────────────
+.claude/

@@ -1,0 +1,24 @@
+data/
+training/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pth
+*.pt
+*.ckpt
+*.wav
+*.mp3
+*.flac
+*.zip
+*.tar
+*.tar.gz
+*.npz
+Emotion Speech Dataset/
+__MACOSX/
+.git/
+.env
+.env.*
+.claude/
+app/media/
