@@ -20,6 +20,7 @@ librosa
 tensorboard
 tqdm
 torch
+torchaudio
 transformers
 uvicorn
 requests
