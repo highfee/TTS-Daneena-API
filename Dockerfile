@@ -36,5 +36,5 @@ COPY --chown=user:user . .
 # Hugging Face Spaces expects the app to run on port 7860
 EXPOSE 7860
 
-# Start the FastAPI application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Start the FastAPI application with proxy headers enabled
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860", "--proxy-headers", "--forwarded-allow-ips", "*"]
