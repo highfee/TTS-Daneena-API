@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     MAIL_FROM: str
     MAIL_PORT: int
     MAIL_SERVER: str
+    RESEND_API_KEY: str | None = None
 
     # Optional OAuth client configuration
     GOOGLE_CLIENT_ID: str | None = None
