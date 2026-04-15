@@ -7,8 +7,8 @@ conf = ConnectionConfig(
     MAIL_FROM=settings.MAIL_FROM,
     MAIL_PORT=settings.MAIL_PORT,
     MAIL_SERVER=settings.MAIL_SERVER,
-    MAIL_STARTTLS=True,
-    MAIL_SSL_TLS=False,
+    MAIL_STARTTLS=settings.MAIL_PORT == 587,
+    MAIL_SSL_TLS=settings.MAIL_PORT == 465,
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True,
 )
