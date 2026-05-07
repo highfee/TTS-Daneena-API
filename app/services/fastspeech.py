@@ -91,6 +91,19 @@ def _fixed_config_path() -> str:
     return tmp.name
 
 
+
+# remove later
+# import numpy as np
+# stats_path = os.path.join(_REPO_ROOT, "training", "exp", "stats", "train", "feats_stats.npz")
+# if os.path.isfile(stats_path):
+#     s = np.load(stats_path)
+#     print(f"[FastSpeech2] feats_stats mean range: {s['mean'].min():.3f} to {s['mean'].max():.3f}")
+#     print(f"[FastSpeech2] feats_stats std range:  {s['std'].min():.3f} to {s['std'].max():.3f}")
+# else:
+#     print(f"[FastSpeech2] ❌ feats_stats.npz NOT FOUND at {stats_path}")
+
+# =================
+
 class FastSpeech2Service:
     _instance = None
 
@@ -187,3 +200,66 @@ class FastSpeech2Service:
 
         print(f"[FastSpeech2] mel shape={mel.shape} min={mel.min():.3f} max={mel.max():.3f} mean={mel.mean():.3f}")
         return mel
+    # def synthesize(self, text: str, prosody: dict, emotion: str = "Neutral"):
+    #     """
+    #     Return a denormalised mel-spectrogram tensor (T, n_mels).
+    #     Optimized for GST-only models and 300k HiFi-GAN.
+    #     """
+    #     import torch
+    #     import numpy as np
+
+    #     # 1. Load Reference Audio (GST)
+    #     # The GST encoder uses this to extract the "vibe" of the emotion.
+    #     ref = self._refs.get(emotion)
+    #     if ref is None:
+    #         ref = self._refs.get("Neutral")
+        
+    #     # Convert numpy array to torch tensor
+    #     ref_tensor = torch.from_numpy(ref).float()
+
+    #     # 2. Extract Prosody Presets from prosody.py
+    #     # Your notebook training supports speed (alpha), pitch, and energy controls.
+    #     speed = max(prosody.get("speed", 1.0), 0.1)
+    #     alpha = 1.0 / speed
+        
+    #     # FastSpeech2 allows us to physically shift these values
+    #     p_control = prosody.get("pitch_shift", 1.0)
+    #     e_control = prosody.get("energy_shift", 1.0)
+
+    #     # 3. Run Inference
+    #     with torch.no_grad():
+    #         # FastSpeech2 standard inference config
+    #         # We remove pitch_control and energy_control to avoid the TypeError
+    #         decode_conf = {
+    #             "alpha": alpha,  # This controls speed (1.0 / speed)
+    #         }
+            
+    #         # If you want to try the other common ESPnet names for these, 
+    #         # they are sometimes 'pitch_alpha' and 'energy_alpha', 
+    #         # but 'alpha' is the only one guaranteed to work in all versions.
+            
+    #         output = self.tts(
+    #             text, 
+    #             speech=ref_tensor, 
+    #             # sids=sid_tensor,  # Omitted as per your notebook config
+    #             decode_conf=decode_conf
+    #         )
+
+    #     # 4. Extract Mel-spectrogram
+    #     # We prioritize feat_gen_denorm which uses your feats_stats.npz
+    #     mel = output.get("feat_gen_denorm")
+    #     if mel is None:
+    #         mel = output.get("feat_gen")
+        
+    #     # 5. Dynamic Range Check (The "Tone" Prevention)
+    #     # HiFi-GAN expects clear contrast. If min is above -6.0, the audio 
+    #     # will sound like a monotone buzzing 'tone'.
+    #     curr_min = mel.min().item()
+    #     if curr_min > -7.0:
+    #         print(f"[FastSpeech2] Found shallow mel range (min={curr_min:.2f}). Applying contrast stretch...")
+    #         # Scale the mel to sit between -11.5 (silence) and 0.5 (speech)
+    #         # This turns the "buzz" back into clear speech.
+    #         mel = ((mel - mel.mean()) * 3.8) - 7.5
+
+    #     print(f"[FastSpeech2] Final Output: min={mel.min():.2f} max={mel.max():.2f}")
+    #     return mel

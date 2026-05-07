@@ -1,0 +1,65 @@
+To get the clear, emotional, and non-robotic voice you are looking for, you
+should aim for the following ranges.
+
+Since you are at Epoch 92, your current values are a "work in progress." Here is
+the comparison between where you are now and where a "sufficiently trained"
+model should be:
+
+Comparison Table: Current vs. Target
+
+| Metric            | Current (Epoch 92) | **Sufficient Target** | Why it matters                                               |
+| :---------------- | :----------------- | :-------------------- | :----------------------------------------------------------- |
+| **Total Loss**    | 1.126              | **\< 0.750**          | The overall mathematical "fit" of the voice.                 |
+| **L1 Loss (Mel)** | 0.599              | **0.400 – 0.450**     | **Clarity.** Lower = crisper, more detailed audio.           |
+| **Pitch Loss**    | 0.335              | **0.180 – 0.220**     | **Emotion.** This is the key to stopping the "robot" sound.  |
+| **Duration Loss** | 0.044              | **0.020 – 0.030**     | **Natural Timing.** Crucial for the rhythm of anger/sadness. |
+| **Energy Loss**   | 0.147              | **0.070 – 0.100**     | **Intensity.** Prevents the voice from sounding "flat."      |
+
+What happens as these numbers drop?
+
+1. The L1 Spec Loss (The Clarity Gate)
+
+Right now, at 0.599, the Mel-spectrogram the model creates is a bit "blurry."
+When your 300k HiFi-GAN receives a blurry spectrogram, it tries to fill in the
+gaps, which can cause that "metallic hiss."
+
+  - At 0.450: The spectrogram becomes sharp. HiFi-GAN will have a much easier
+    time producing crystal-clear high frequencies (the "s" and "t" sounds).
+
+2. The Pitch Loss (The Robot Killer)
+
+At 0.335, your model is likely predicting a "mean pitch." It knows the speaker's
+voice is generally deep or high, but it isn't predicting the inflection.
+
+  - The Problem: Humans constantly change pitch. Robots stay on one note.
+  - The Target (0.200): When this drops, the model starts predicting the
+    "prosody"—the way a person’s voice rises when they are surprised or drops
+    when they are sad. This is the most important metric for your goal.
+
+3. Grad Norm & Learning Rate
+
+Your optim0_lr0=7.570e-05 is good. It shows the warmuplr scheduler is working.
+
+  - Watch this: As you approach Epoch 400-500, the learning rate will start to
+    decay (get smaller). This is when the model does its "fine-polishing." If
+    you stop before the decay happens, you miss out on the most realistic
+    details.
+
+💡 The "Rule of Thumb" for ESD
+
+On the Emotional Speech Database (ESD), because it is quite complex (10 speakers
++ 5 emotions), FastSpeech 2 typically reaches its "Best Human" quality around
+Step 40,000 to 60,000.
+
+  - Based on your logs (100 steps per log interval), you are currently at
+    approximately Step 9,200.
+  - You are roughly 20% of the way to the "Sufficient" zone.
+
+My Final Advice:
+
+Your current numbers are actually very good for Epoch 92. It means your data is
+very clean and the model is learning perfectly.
+
+Wait until the Pitch Loss drops below 0.250. Once you see that, the robotic
+drone will start to transform into a natural human voice. This usually happens
+between Epoch 400 and 600.

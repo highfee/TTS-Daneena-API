@@ -21,7 +21,8 @@ def on_startup():
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://daneena.vercel.app"
+    "https://daneena.vercel.app",
+    "https://daneena-ea-tts.buzz"
 ]
 
 if os.getenv("FRONTEND_URL"):

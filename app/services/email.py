@@ -9,6 +9,7 @@ resend.api_key = settings.RESEND_API_KEY
 env = Environment(loader=FileSystemLoader("app/templates/emails"))
 
 async def send_auth_email(email: str, token: str):
+    # so as to copy code from terminal
     if not resend.api_key:
         print(f"[AUTH EMAIL - FALLBACK] To: {email}")
         print(f"Your login code: {token}")
@@ -26,5 +27,4 @@ async def send_auth_email(email: str, token: str):
             "html": html_content
         })
 
-    # Run in a threadpool because the python resend package is synchronous
     await asyncio.to_thread(_send)
