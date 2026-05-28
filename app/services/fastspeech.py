@@ -2,7 +2,11 @@ import os
 import re
 import tempfile
 
+from dotenv import load_dotenv
+load_dotenv()  # Ensure .env values (like FORCE_FALLBACK=1) are loaded into os.environ
+
 import nltk
+import numpy as np
 import soundfile as sf
 import torch
 import yaml
@@ -118,11 +122,14 @@ class FastSpeech2Service:
         if _USE_FALLBACK:
             print(
                 "[FastSpeech2] Local trained model not found — "
-                "using pretrained LJSpeech fallback (no GST)."
+                "using pretrained LJSpeech VITS fallback (no GST)."
             )
+            # VITS has a built-in neural vocoder — it outputs a wav directly,
+            # no mel → HiFiGAN step needed.  Much better than FS2 + Griffin-Lim.
             self.tts = Text2Speech.from_pretrained(
-                model_tag="espnet/kan-bayashi_ljspeech_fastspeech2",
+                model_tag="espnet/kan-bayashi_ljspeech_vits",
                 device="cpu",
+                vocoder_tag=None,   # VITS is end-to-end
             )
             self._refs = {}
             self._has_gst = False
@@ -159,16 +166,51 @@ class FastSpeech2Service:
 
     # ------------------------------------------------------------------
     def synthesize(self, text: str, prosody: dict, emotion: str = "Neutral"):
-        """Return a denormalised mel-spectrogram tensor (T, n_mels)."""
-
-        # Always pass a reference audio for the local model — the GST encoder
-        # requires it. For the pretrained fallback _refs is empty so ref=None.
-        ref = self._refs.get(emotion)
-        if ref is None:
-            ref = self._refs.get("Neutral")
-
-        # alpha speed control only works with FastSpeech2, not Tacotron2
+        """
+        Returns either:
+          - A 1-D wav tensor/array  (fallback VITS mode, or local model with built-in vocoder)
+          - A 2-D mel tensor (T, n_mels)  (local FastSpeech2 model → needs HiFiGAN)
+        """
         speed = max(prosody.get("speed", 1.0), 0.1)
+
+        # ── Pretrained VITS fallback ─────────────────────────────────────────
+        if _USE_FALLBACK:
+            with torch.no_grad():
+                output = self.tts(text)
+
+            print(f"[FastSpeech2-VITS] output keys: {list(output.keys())}")
+
+            wav = output.get("wav", output.get("feat_gen_denorm"))
+            if wav is None:
+                wav = next(iter(output.values()))
+
+            # Squeeze to 1-D: (1, T) → (T,)
+            if hasattr(wav, "squeeze"):
+                wav = wav.squeeze()
+
+            # Convert to numpy float32
+            wav_np = wav.cpu().numpy() if hasattr(wav, "cpu") else np.asarray(wav, dtype=np.float32)
+
+            # Speed adjustment via resampling (no librosa dependency required)
+            if abs(speed - 1.0) > 0.05:
+                try:
+                    import librosa
+                    wav_np = librosa.effects.time_stretch(wav_np, rate=speed)
+                except ImportError:
+                    pass  # skip speed shift if librosa not available
+
+            print(f"[FastSpeech2-VITS] wav: shape={wav_np.shape} min={wav_np.min():.3f} max={wav_np.max():.3f}")
+            return wav_np
+
+        # ── Local trained model (FastSpeech2 + GST) ──────────────────────────
+        # Match case-insensitively (e.g. 'sad' -> 'Sad')
+        ref = self._refs.get(emotion.capitalize())
+        if ref is None:
+            # If the emotion (like 'fear') isn't in the GST dataset, fallback to a close emotion or Neutral
+            if emotion.lower() == "fear":
+                ref = self._refs.get("Surprise") or self._refs.get("Neutral")
+            else:
+                ref = self._refs.get("Neutral")
         alpha = 1.0 / speed
 
         with torch.no_grad():
@@ -180,20 +222,7 @@ class FastSpeech2Service:
 
         print(f"[FastSpeech2] output keys: {list(output.keys())}")
 
-        # For the local Tacotron2 model always use the mel → HiFiGAN path.
-        # Griffin-Lim (ESPnet's built-in vocoder) produces robotic audio;
-        # the fine-tuned HiFiGAN gives significantly better quality.
-        # For the pretrained LJSpeech fallback, use its built-in vocoder (wav).
-        if _USE_FALLBACK and "wav" in output:
-            wav = output["wav"]
-            if hasattr(wav, 'squeeze'):
-                wav = wav.squeeze()
-            print(f"[FastSpeech2] built-in vocoder wav: shape={wav.shape} min={wav.min():.3f} max={wav.max():.3f}")
-            return wav
-
-        # Local model: return mel for HiFiGAN vocoding.
-        # ESPnet returns feat_gen_denorm when a normaliser is configured,
-        # otherwise falls back to feat_gen.
+        # Prefer denormalised mel so HiFiGAN gets the correct amplitude range.
         mel = output.get("feat_gen_denorm", output.get("feat_gen"))
         if mel is None:
             mel = next(iter(output.values()))

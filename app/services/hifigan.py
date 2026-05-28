@@ -3,6 +3,9 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()  # Load environment variables from .env
+
 import torch
 import numpy as np
 
@@ -36,6 +39,12 @@ class HiFiGANService:
         return cls._instance
 
     def _init(self):
+        # Force fallback if set in .env
+        if os.environ.get("FORCE_FALLBACK", "0") == "1":
+            print("[HiFiGAN] FORCE_FALLBACK=1 is active — completely forcing pretrained LJSpeech vocoder fallback.")
+            self._load_pretrained()
+            return
+
         ckpt_path, cfg_path = _find_finetuned()
 
         if ckpt_path and cfg_path and ckpt_path.exists() and cfg_path.exists():

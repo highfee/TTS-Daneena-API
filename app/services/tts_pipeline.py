@@ -2,8 +2,12 @@ import os
 import time
 import uuid
 import functools
+
+import numpy as np
 import soundfile as sf
 from types import SimpleNamespace
+
+import torch
 
 from app.models.tts_request import TTSRequest
 from app.services.emotion import detect_emotion
@@ -22,33 +26,52 @@ MEDIA_FOLDER = "app/media/tts"
 # Keyed on (text, emotion) -> numpy audio array.
 # maxsize=64 means we keep the last 64 unique (text, emotion) results.
 # ---------------------------------------------------------------------------
+import threading
+_inference_lock = threading.Lock()
+
 @functools.lru_cache(maxsize=64)
 def _synthesize_cached(
     text: str, emotion: str, speed: float, pitch_shift: float, energy_shift: float
 ):
     """
     Pure inference function with no side effects — safe to cache.
-    Returns the raw audio numpy array.
+    Returns the raw audio numpy array (float32, 1-D).
+
+    fastspeech.synthesize() contract:
+      - VITS fallback  → 1-D numpy float32 array  (wav, ready to save)
+      - Local FS2+GST  → 2-D torch tensor (T, n_mels) (mel, needs HiFiGAN)
     """
     prosody = {
         "speed": speed,
         "pitch_shift": pitch_shift,
         "energy_shift": energy_shift,
     }
-    result = fastspeech.synthesize(text, prosody, emotion=emotion)
-    # synthesize() returns a 1-D wav (built-in vocoder) or a 2-D mel (T, n_mels).
-    import numpy as np
-    if hasattr(result, 'squeeze'):
-        result = result.squeeze()
-    if isinstance(result, np.ndarray) or (hasattr(result, 'ndim') and result.ndim == 1):
-        audio = result.cpu().numpy() if hasattr(result, 'cpu') else result
-    else:
-        # mel path — (T, n_mels) tensor goes to HiFiGAN
-        audio = hifigan.vocode(result)
-    # Normalise to prevent digital clipping and ensure audible amplitude
+    with _inference_lock:
+        result = fastspeech.synthesize(text, prosody, emotion=emotion)
+
+        # --- Convert to numpy if still a tensor ---
+        if hasattr(result, "cpu"):
+            result = result.cpu().numpy()
+        result = np.asarray(result, dtype=np.float32)
+
+        # --- Route on dimensionality ---
+        if result.ndim == 1:
+            # Already a waveform (VITS / built-in vocoder)
+            audio = result
+        elif result.ndim == 2:
+            # Mel-spectrogram (T, n_mels) — run through HiFiGAN
+            mel_tensor = torch.from_numpy(result)
+            audio = hifigan.vocode(mel_tensor)
+            audio = np.asarray(audio, dtype=np.float32)
+        else:
+            raise RuntimeError(f"[TTS] Unexpected result shape from synthesize(): {result.shape}")
+
+    # Normalise: prevent digital clipping, ensure audible amplitude
     max_val = np.abs(audio).max()
     if max_val > 0:
         audio = audio / max_val * 0.95
+
+    print(f"[TTS] Final audio: shape={audio.shape} min={audio.min():.3f} max={audio.max():.3f}")
     return audio
 
 

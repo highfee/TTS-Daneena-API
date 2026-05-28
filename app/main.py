@@ -15,8 +15,25 @@ app = FastAPI(title="EA-TTS Backend")
 def on_startup():
     init_db()
     # Create TTS media folder once at startup instead of per-request
-    from app.services.tts_pipeline import MEDIA_FOLDER
+    from app.services.tts_pipeline import MEDIA_FOLDER, generate_tts
+    import app.services.emotion as emotion_service
     os.makedirs(MEDIA_FOLDER, exist_ok=True)
+    
+    # Warm up ML models (FastSpeech, HiFiGAN, Emotion Classifier) 
+    # to prevent the first client request from timing out and throwing a 500 error.
+    try:
+        from app.db.session import SessionLocal
+        print("Warming up ML models...")
+        # Pre-load emotion classifier
+        emotion_service.detect_emotion("Warm up")
+        
+        # Pre-load TTS pipeline
+        db = SessionLocal()
+        generate_tts(text="Warm up", user_id=None, db=db, background_tasks=None)
+        db.close()
+        print("ML models warmed up successfully.")
+    except Exception as e:
+        print(f"Warning: ML model warmup failed: {e}")
 
 origins = [
     "http://localhost:3000",
