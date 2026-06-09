@@ -64,5 +64,14 @@ PROSODY_PRESETS = {
 }
 
 
-def get_prosody(emotion: str):
-    return PROSODY_PRESETS.get(emotion, PROSODY_PRESETS["neutral"])
+# def get_prosody(emotion: str):
+#     return PROSODY_PRESETS.get(emotion, PROSODY_PRESETS["neutral"])
+
+def get_prosody(emotion: str) -> dict[str, float]:
+    p = PROSODY_PRESETS.get(emotion, PROSODY_PRESETS["neutral"])
+
+    return {
+        "pitch_shift": p["pitch_shift"] + random.uniform(-0.01, 0.01),
+        "speed": p["speed"] + random.uniform(-0.01, 0.01),
+        "energy_shift": p["energy_shift"] + random.uniform(-0.015, 0.015),
+    }
