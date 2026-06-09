@@ -21,7 +21,7 @@ async def send_auth_email(email: str, token: str):
 
     def _send():
         return resend.Emails.send({
-            "from": settings.MAIL_FROM,
+            "from": "Maigidaje Hidaya Mannir",
             "to": email,
             "subject": "Your login code",
             "html": html_content

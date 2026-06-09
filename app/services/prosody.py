@@ -25,22 +25,42 @@
 # Emotional character is delivered via pitch_shift + energy_shift + GST reference.
 PROSODY_PRESETS = {
     # Brighter and more energetic — lifted pitch, louder delivery
-    "happy":   {"pitch_shift":  0.05, "speed": 1.0, "energy_shift":  0.10},
+    # "happy":   {"pitch_shift":  0.05, "speed": 1.0, "energy_shift":  0.10},
 
-    # Heavier and softer — lowered pitch, quieter voice
-    "sad":     {"pitch_shift": -0.10, "speed": 1.0, "energy_shift": -0.15},
+    # # Heavier and softer — lowered pitch, quieter voice
+    # "sad":     {"pitch_shift": -0.10, "speed": 1.0, "energy_shift": -0.15},
 
-    # Flat baseline — no modification, reference delivery
+    # # Flat baseline — no modification, reference delivery
+    # "neutral": {"pitch_shift":  0.00, "speed": 1.0, "energy_shift":  0.00},
+
+    # # Loud and tense — high pitch, strong volume boost
+    # "angry":   {"pitch_shift":  0.10, "speed": 1.0, "energy_shift":  0.20},
+
+    # # Timid and shaky — raised pitch but very quiet, like a hushed whisper
+    # "fear":    {"pitch_shift":  0.08, "speed": 1.0, "energy_shift": -0.15},
+
+    # # Startled pop — sharp pitch jump with a volume spike
+    # "surprise":{"pitch_shift":  0.12, "speed": 1.0, "energy_shift":  0.10},
+
+    
+    # Happy: High energy push with a tiny pitch lift to sound cheerful, not chipmunk
+    "happy":   {"pitch_shift":  0.08, "speed": 1.0, "energy_shift":  0.22},
+
+    # Sad: Heavy energy drop; any lower on pitch will sound like digital mud
+    "sad":     {"pitch_shift": -0.07, "speed": 1.0, "energy_shift": -0.25},
+
+    # Neutral: Absolute baseline reference
     "neutral": {"pitch_shift":  0.00, "speed": 1.0, "energy_shift":  0.00},
 
-    # Loud and tense — high pitch, strong volume boost
-    "angry":   {"pitch_shift":  0.10, "speed": 1.0, "energy_shift":  0.20},
+    # Angry: Intense energy blast; pitch is kept tight to prevent the robotic whine
+    "angry":   {"pitch_shift":  0.05, "speed": 1.0, "energy_shift":  0.35},
 
-    # Timid and shaky — raised pitch but very quiet, like a hushed whisper
-    "fear":    {"pitch_shift":  0.08, "speed": 1.0, "energy_shift": -0.15},
+    # Fear: Light pitch lift but severely choked energy to mimic a breathless gasp
+    "fear":    {"pitch_shift":  0.06, "speed": 1.0, "energy_shift": -0.30},
 
-    # Startled pop — sharp pitch jump with a volume spike
-    "surprise":{"pitch_shift":  0.12, "speed": 1.0, "energy_shift":  0.10},
+    # Surprise: Sharpest allowed pitch spike paired with an energetic pop
+    "surprise":{"pitch_shift":  0.14, "speed": 1.0, "energy_shift":  0.18},
+
 }
 
 
