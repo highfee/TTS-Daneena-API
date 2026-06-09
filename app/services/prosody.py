@@ -67,6 +67,8 @@ PROSODY_PRESETS = {
 # def get_prosody(emotion: str):
 #     return PROSODY_PRESETS.get(emotion, PROSODY_PRESETS["neutral"])
 
+import random
+
 def get_prosody(emotion: str) -> dict[str, float]:
     p = PROSODY_PRESETS.get(emotion, PROSODY_PRESETS["neutral"])
 
