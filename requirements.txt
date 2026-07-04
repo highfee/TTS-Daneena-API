@@ -21,7 +21,8 @@ tensorboard
 tqdm
 torch
 torchaudio
-transformers
+# transformers
+transformers==4.37.2
 uvicorn
 requests
 espnet_model_zoo
