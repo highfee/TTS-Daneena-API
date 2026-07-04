@@ -26,4 +26,4 @@ uvicorn
 requests
 espnet_model_zoo
 resend
-parallel-wavegan
+parallel-wavegan==0.5.4
