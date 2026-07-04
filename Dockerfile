@@ -30,6 +30,9 @@ COPY --chown=user:user requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Auto-accept Coqui TTS license agreement
+ENV COQUI_TOS_AGREED=1
+
 
 # Download NLTK data at build time so it's available at runtime
 # RUN python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng')"

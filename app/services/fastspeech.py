@@ -416,6 +416,10 @@
 import os
 import torch
 import numpy as np
+
+import os
+os.environ["COQUI_TOS_AGREED"] = "1" 
+
 from TTS.api import TTS
 
 # ── Reference audio paths ─────────────────────────────────────────────────────
