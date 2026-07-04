@@ -3,15 +3,15 @@ import librosa
 
 EMOTION_PROFILES = {
     'Angry': {
-        'tempo_factor':    1.15,    # noticeably faster
-        'loudness_db':     8.0,     # significantly louder
-        'pitch_semitones': 2.0,
+        'tempo_factor':    1.10,
+        'loudness_db':     5.0,
+        'pitch_semitones': 0.5,    # was 2.0 — anger is tense, not high pitched
         'eq_profile':      'harsh',
     },
     'Happy': {
-        'tempo_factor':    1.12,
-        'loudness_db':     5.0,
-        'pitch_semitones': 3.0,     # more noticeably higher
+        'tempo_factor':    1.08,
+        'loudness_db':     3.0,
+        'pitch_semitones': 1.0,    # was 3.0 — slight lift, not chipmunk
         'eq_profile':      'bright',
     },
     'Neutral': {
@@ -21,37 +21,37 @@ EMOTION_PROFILES = {
         'eq_profile':      'flat',
     },
     'Sad': {
-        'tempo_factor':    0.80,    # much slower
-        'loudness_db':    -5.0,     # quieter
-        'pitch_semitones':-2.5,     # noticeably lower
+        'tempo_factor':    0.82,
+        'loudness_db':    -4.0,
+        'pitch_semitones':-1.0,    # was -2.5 — subtle lowering sounds more natural
         'eq_profile':      'dull',
     },
     'Surprise': {
-        'tempo_factor':    1.08,
-        'loudness_db':     6.0,
-        'pitch_semitones': 4.0,     # highest — shock effect
+        'tempo_factor':    1.06,
+        'loudness_db':     4.0,
+        'pitch_semitones': 1.5,    # was 4.0 — was way too high
         'eq_profile':      'bright',
     },
-    # ── Additional emotions mapped to closest ESD equivalent ─────────────────
     'Fear': {
-        'tempo_factor':    1.20,    # fast, rushed
-        'loudness_db':     3.0,
-        'pitch_semitones': 3.5,     # high pitched
+        'tempo_factor':    1.15,
+        'loudness_db':     2.0,
+        'pitch_semitones': 1.0,    # was 3.5
         'eq_profile':      'bright',
     },
     'Disgust': {
-        'tempo_factor':    0.90,
+        'tempo_factor':    0.92,
         'loudness_db':    -2.0,
-        'pitch_semitones':-1.0,
+        'pitch_semitones':-0.5,    # was -1.0
         'eq_profile':      'dull',
     },
     'Excited': {
-        'tempo_factor':    1.18,
-        'loudness_db':     6.0,
-        'pitch_semitones': 3.0,
+        'tempo_factor':    1.15,
+        'loudness_db':     5.0,
+        'pitch_semitones': 1.5,    # was 3.0
         'eq_profile':      'bright',
     },
 }
+
 def apply_eq(wav: np.ndarray, sr: int, profile: str) -> np.ndarray:
     fft       = np.fft.rfft(wav)
     freqs     = np.fft.rfftfreq(len(wav), d=1/sr)
