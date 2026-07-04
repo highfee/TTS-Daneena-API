@@ -36,7 +36,7 @@ ENV COQUI_TOS_AGREED=1
 
 # Download NLTK data at build time so it's available at runtime
 # RUN python -c "import nltk; nltk.download('averaged_perceptron_tagger_eng')"
-RUN python -c "from TTS.api import TTS; TTS('tts_models/multilingual/multi-dataset/xtts_v2')"
+# RUN python -c "from TTS.api import TTS; TTS('tts_models/multilingual/multi-dataset/xtts_v2')"
 
 # Copy the rest of the backend files
 COPY --chown=user:user . .
