@@ -28,7 +28,7 @@ app/media/
 # ── Dataset & audio files ─────────────────────────────────────────────────
 /Emotion Speech Dataset/
 /__MACOSX/
-
+*.wav
 *.mp3
 *.flac
 *.zip

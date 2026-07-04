@@ -421,7 +421,6 @@ import os
 os.environ["COQUI_TOS_AGREED"] = "1" 
 
 # Patch torch.load to use weights_only=False for XTTS-v2 compatibility
-import torch
 _original_torch_load = torch.load
 def _patched_torch_load(f, *args, **kwargs):
     kwargs.setdefault("weights_only", False)
@@ -430,7 +429,6 @@ torch.load = _patched_torch_load
 
 from TTS.api import TTS
 
-from TTS.api import TTS
 
 # ── Reference audio paths ─────────────────────────────────────────────────────
 _REPO_ROOT = os.path.abspath(
