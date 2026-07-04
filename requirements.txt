@@ -26,3 +26,5 @@ uvicorn
 requests
 espnet_model_zoo
 resend
+# TTS==0.22.0
+coqui-tts
