@@ -3,15 +3,15 @@ import librosa
 
 EMOTION_PROFILES = {
     'Angry': {
-        'tempo_factor':    1.10,
-        'loudness_db':     6.0,
-        'pitch_semitones': 1.5,
+        'tempo_factor':    1.15,    # noticeably faster
+        'loudness_db':     8.0,     # significantly louder
+        'pitch_semitones': 2.0,
         'eq_profile':      'harsh',
     },
     'Happy': {
-        'tempo_factor':    1.08,
-        'loudness_db':     4.0,
-        'pitch_semitones': 2.0,
+        'tempo_factor':    1.12,
+        'loudness_db':     5.0,
+        'pitch_semitones': 3.0,     # more noticeably higher
         'eq_profile':      'bright',
     },
     'Neutral': {
@@ -21,19 +21,37 @@ EMOTION_PROFILES = {
         'eq_profile':      'flat',
     },
     'Sad': {
-        'tempo_factor':    0.85,
-        'loudness_db':    -4.0,
-        'pitch_semitones':-1.5,
+        'tempo_factor':    0.80,    # much slower
+        'loudness_db':    -5.0,     # quieter
+        'pitch_semitones':-2.5,     # noticeably lower
         'eq_profile':      'dull',
     },
     'Surprise': {
-        'tempo_factor':    1.05,
-        'loudness_db':     5.0,
+        'tempo_factor':    1.08,
+        'loudness_db':     6.0,
+        'pitch_semitones': 4.0,     # highest — shock effect
+        'eq_profile':      'bright',
+    },
+    # ── Additional emotions mapped to closest ESD equivalent ─────────────────
+    'Fear': {
+        'tempo_factor':    1.20,    # fast, rushed
+        'loudness_db':     3.0,
+        'pitch_semitones': 3.5,     # high pitched
+        'eq_profile':      'bright',
+    },
+    'Disgust': {
+        'tempo_factor':    0.90,
+        'loudness_db':    -2.0,
+        'pitch_semitones':-1.0,
+        'eq_profile':      'dull',
+    },
+    'Excited': {
+        'tempo_factor':    1.18,
+        'loudness_db':     6.0,
         'pitch_semitones': 3.0,
         'eq_profile':      'bright',
     },
 }
-
 def apply_eq(wav: np.ndarray, sr: int, profile: str) -> np.ndarray:
     fft       = np.fft.rfft(wav)
     freqs     = np.fft.rfftfreq(len(wav), d=1/sr)
@@ -67,14 +85,22 @@ def apply_pitch_shift(wav: np.ndarray, sr: int, semitones: float) -> np.ndarray:
     return librosa.effects.pitch_shift(wav, sr=sr, n_steps=semitones)
 
 def postprocess(wav: np.ndarray, sr: int, emotion: str) -> np.ndarray:
-    profile = EMOTION_PROFILES.get(emotion, EMOTION_PROFILES['Neutral'])
+    # Case-insensitive lookup, fallback to Neutral
+    profile = EMOTION_PROFILES.get(
+        emotion.capitalize(),
+        EMOTION_PROFILES['Neutral']
+    )
+    
+    print(f"[PostProcess] emotion={emotion} "
+          f"tempo={profile['tempo_factor']} "
+          f"pitch={profile['pitch_semitones']} "
+          f"loudness={profile['loudness_db']}dB")
 
     wav = apply_tempo(wav, sr, profile['tempo_factor'])
     wav = apply_pitch_shift(wav, sr, profile['pitch_semitones'])
     wav = apply_eq(wav, sr, profile['eq_profile'])
     wav = apply_loudness(wav, profile['loudness_db'])
 
-    # Final peak normalize
     peak = np.abs(wav).max()
     if peak > 0.95:
         wav = wav * (0.95 / peak)
