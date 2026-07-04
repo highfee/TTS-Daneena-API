@@ -303,7 +303,7 @@ from espnet2.bin.tts_inference import Text2Speech
 
 # ── Pretrained model tags ─────────────────────────────────────────────────────
 _MODEL_TAG   = "kan-bayashi/ljspeech_fastspeech2"
-_VOCODER_TAG = "parallel_wavegan/ljspeech_parallel_wavegan.v1"
+# _VOCODER_TAG = "parallel_wavegan/ljspeech_parallel_wavegan.v1"
 
 class FastSpeech2Service:
     _instance = None
@@ -318,7 +318,7 @@ class FastSpeech2Service:
         print("[FastSpeech2] Loading pretrained LJSpeech FastSpeech2...")
         self.tts = Text2Speech.from_pretrained(
             model_tag=_MODEL_TAG,
-            vocoder_tag=_VOCODER_TAG,
+            vocoder_tag= None,
             device="cuda" if torch.cuda.is_available() else "cpu",
             speed_control_alpha=1.0,
         )
