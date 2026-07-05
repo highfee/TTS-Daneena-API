@@ -1,9 +1,7 @@
 alembic
-espnet
 fastapi
 fastapi-mail
 Jinja2
-matplotlib
 nltk
 psycopg2-binary
 pydantic
@@ -11,21 +9,17 @@ pydantic-settings
 python-dotenv
 python-jose[cryptography]
 python-multipart
-pyworld
 pyyaml
 slowapi
 soundfile
 sqlalchemy
 librosa
-tensorboard
 tqdm
-torch
-torchaudio
-# transformers
+torch==2.1.0
+torchaudio==2.1.0
+torchvision==0.16.0
 transformers==4.37.2
 uvicorn
 requests
-espnet_model_zoo
 resend
-# TTS==0.22.0
 coqui-tts
