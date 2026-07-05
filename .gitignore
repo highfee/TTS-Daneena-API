@@ -76,3 +76,4 @@ pyrightconfig.json
 
 # ── Claude Code ───────────────────────────────────────────────────────────
 .claude/
+data/reference_audio/
