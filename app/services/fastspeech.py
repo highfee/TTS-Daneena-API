@@ -416,11 +416,11 @@
 import os
 import torch
 import numpy as np
+import urllib.request
 
-import os
-os.environ["COQUI_TOS_AGREED"] = "1" 
+os.environ["COQUI_TOS_AGREED"] = "1"
 
-# Patch torch.load to use weights_only=False for XTTS-v2 compatibility
+# ── Patch torch.load before ANY TTS import ────────────────────────────────────
 _original_torch_load = torch.load
 def _patched_torch_load(f, *args, **kwargs):
     kwargs.setdefault("weights_only", False)
@@ -428,7 +428,6 @@ def _patched_torch_load(f, *args, **kwargs):
 torch.load = _patched_torch_load
 
 from TTS.api import TTS
-
 
 # ── Reference audio paths ─────────────────────────────────────────────────────
 _REPO_ROOT = os.path.abspath(
@@ -447,8 +446,13 @@ _EMOTION_REF_PATHS = {
     "Excited":  os.path.join(_REF_DIR, "happy.wav"),
 }
 
-# Emotions that map to a fallback if their ref file is missing
 _FALLBACK_EMOTION = "Neutral"
+
+# ── HF Space URL for reference audio download ─────────────────────────────────
+_HF_BASE_URL = (
+    "https://huggingface.co/spaces/HIghfee/daneena_tts"
+    "/resolve/main/data/reference_audio"
+)
 
 
 class FastSpeech2Service:
@@ -460,7 +464,29 @@ class FastSpeech2Service:
             cls._instance._init()
         return cls._instance
 
+    # ── Download reference audio if missing ───────────────────────────────────
+    def _download_refs_if_missing(self):
+        os.makedirs(_REF_DIR, exist_ok=True)
+        files = ["angry.wav", "happy.wav", "neutral.wav", "sad.wav", "surprise.wav"]
+        for filename in files:
+            out_path = os.path.join(_REF_DIR, filename)
+            if not os.path.isfile(out_path):
+                url = f"{_HF_BASE_URL}/{filename}"
+                print(f"[TTS] Downloading {filename}...")
+                try:
+                    urllib.request.urlretrieve(url, out_path)
+                    print(f"[TTS] ✅ {filename} downloaded")
+                except Exception as e:
+                    print(f"[TTS] ❌ Failed to download {filename}: {e}")
+            else:
+                print(f"[TTS] ✅ {filename} already exists locally")
+
+    # ── Initialise model ──────────────────────────────────────────────────────
     def _init(self):
+        # Step 1 — ensure reference audio is present
+        self._download_refs_if_missing()
+
+        # Step 2 — load XTTS-v2
         print("[TTS] Loading XTTS-v2 model...")
         self.tts = TTS(
             model_name="tts_models/multilingual/multi-dataset/xtts_v2",
@@ -468,28 +494,17 @@ class FastSpeech2Service:
         ).to("cuda" if torch.cuda.is_available() else "cpu")
         print("[TTS] XTTS-v2 loaded.")
 
-        # Verify all reference audio files at startup
+        # Step 3 — verify reference audio
         print(f"[TTS] Reference audio directory: {_REF_DIR}")
-        all_ok = True
         for emotion, path in _EMOTION_REF_PATHS.items():
             if os.path.isfile(path):
                 size = os.path.getsize(path) / 1024
                 print(f"[TTS] ✅ {emotion}: {os.path.basename(path)} ({size:.0f} KB)")
             else:
                 print(f"[TTS] ⚠️  {emotion}: NOT FOUND — {path}")
-                all_ok = False
 
-        if not all_ok:
-            print("[TTS] ⚠️  Some reference files missing — affected emotions will fall back to Neutral")
-
-        # Verify neutral exists — it's the fallback for everything
-        # neutral_path = _EMOTION_REF_PATHS[_FALLBACK_EMOTION]
-        # assert os.path.isfile(neutral_path), (
-        #     f"[TTS] ❌ Neutral reference audio is required but missing: {neutral_path}"
-        # )
-
-    def _get_ref_path(self, emotion: str) -> str:
-        """Return ref path for emotion, falling back to Neutral if missing."""
+    # ── Get reference path for emotion ───────────────────────────────────────
+    def _get_ref_path(self, emotion: str) -> str | None:
         path = _EMOTION_REF_PATHS.get(
             emotion.capitalize(),
             _EMOTION_REF_PATHS[_FALLBACK_EMOTION]
@@ -497,32 +512,40 @@ class FastSpeech2Service:
         if not os.path.isfile(path):
             print(f"[TTS] ⚠️  No ref for '{emotion}', falling back to Neutral")
             path = _EMOTION_REF_PATHS[_FALLBACK_EMOTION]
+        # Final fallback — if neutral also missing return None
+        if not os.path.isfile(path):
+            return None
         return path
 
+    # ── Synthesize ────────────────────────────────────────────────────────────
     def synthesize(self, text: str, prosody: dict, emotion: str = "Neutral") -> np.ndarray:
         ref_path = self._get_ref_path(emotion)
-        print(f"[TTS] Synthesizing | emotion={emotion}")
 
-        if ref_path and os.path.isfile(ref_path):
-            # Use emotion reference audio
+        print(f"[TTS] Synthesizing | emotion={emotion} | "
+              f"ref={os.path.basename(ref_path) if ref_path else 'default'}")
+
+        if ref_path:
             wav = self.tts.tts(
                 text=text,
                 speaker_wav=ref_path,
                 language="en",
             )
         else:
-            # No reference audio — use default XTTS voice
-            print("[TTS] ⚠️  No reference audio — using default voice")
+            # No reference audio available — use built-in XTTS speaker
+            print("[TTS] ⚠️  Using built-in default speaker")
             wav = self.tts.tts(
                 text=text,
-                speaker="Claribel Dervla",  # built-in XTTS speaker
+                speaker="Claribel Dervla",
                 language="en",
             )
 
         wav_np = np.array(wav, dtype=np.float32)
+
+        # Normalize
         peak = np.abs(wav_np).max()
         if peak > 0:
             wav_np = wav_np / peak * 0.95
 
-        print(f"[TTS] wav shape={wav_np.shape} min={wav_np.min():.3f} max={wav_np.max():.3f}")
+        print(f"[TTS] wav shape={wav_np.shape} "
+              f"min={wav_np.min():.3f} max={wav_np.max():.3f}")
         return wav_np
