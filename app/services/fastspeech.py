@@ -483,10 +483,10 @@ class FastSpeech2Service:
             print("[TTS] ⚠️  Some reference files missing — affected emotions will fall back to Neutral")
 
         # Verify neutral exists — it's the fallback for everything
-        neutral_path = _EMOTION_REF_PATHS[_FALLBACK_EMOTION]
-        assert os.path.isfile(neutral_path), (
-            f"[TTS] ❌ Neutral reference audio is required but missing: {neutral_path}"
-        )
+        # neutral_path = _EMOTION_REF_PATHS[_FALLBACK_EMOTION]
+        # assert os.path.isfile(neutral_path), (
+        #     f"[TTS] ❌ Neutral reference audio is required but missing: {neutral_path}"
+        # )
 
     def _get_ref_path(self, emotion: str) -> str:
         """Return ref path for emotion, falling back to Neutral if missing."""
@@ -501,18 +501,25 @@ class FastSpeech2Service:
 
     def synthesize(self, text: str, prosody: dict, emotion: str = "Neutral") -> np.ndarray:
         ref_path = self._get_ref_path(emotion)
+        print(f"[TTS] Synthesizing | emotion={emotion}")
 
-        print(f"[TTS] Synthesizing | emotion={emotion} | ref={os.path.basename(ref_path)}")
-
-        wav = self.tts.tts(
-            text=text,
-            speaker_wav=ref_path,
-            language="en",
-        )
+        if ref_path and os.path.isfile(ref_path):
+            # Use emotion reference audio
+            wav = self.tts.tts(
+                text=text,
+                speaker_wav=ref_path,
+                language="en",
+            )
+        else:
+            # No reference audio — use default XTTS voice
+            print("[TTS] ⚠️  No reference audio — using default voice")
+            wav = self.tts.tts(
+                text=text,
+                speaker="Claribel Dervla",  # built-in XTTS speaker
+                language="en",
+            )
 
         wav_np = np.array(wav, dtype=np.float32)
-
-        # Normalize
         peak = np.abs(wav_np).max()
         if peak > 0:
             wav_np = wav_np / peak * 0.95
