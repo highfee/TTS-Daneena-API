@@ -19,7 +19,7 @@ def on_startup():
     import app.services.emotion as emotion_service
     os.makedirs(MEDIA_FOLDER, exist_ok=True)
     
-    # Warm up ML models (FastSpeech, HiFiGAN, Emotion Classifier) 
+    # Warm up ML models 
     # to prevent the first client request from timing out and throwing a 500 error.
     try:
         from app.db.session import SessionLocal

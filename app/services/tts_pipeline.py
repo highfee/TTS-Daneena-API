@@ -197,79 +197,17 @@ from types import SimpleNamespace
 from app.models.tts_request import TTSRequest
 from app.services.emotion import detect_emotion
 from app.services.prosody import get_prosody
-from app.services.fastspeech import FastSpeech2Service
+from app.services.xtts import XTTSService
 # from app.services.emotion_postprocess import postprocess
 
 # ── Service singletons ────────────────────────────────────────────────────────
-fastspeech = FastSpeech2Service()
+xtts = XTTSService()
 
 MEDIA_FOLDER = "app/media/tts"
 
 # ── Inference lock & cache ────────────────────────────────────────────────────
 _inference_lock = threading.Lock()
 
-
-# @functools.lru_cache(maxsize=64)
-# def _synthesize_cached(
-#     text: str,
-#     emotion: str,
-#     speed: float,
-#     pitch_shift: float,
-#     energy_shift: float,
-# ):
-#     """
-#     Pure inference function — safe to cache.
-#     Returns a normalised 1-D float32 numpy audio array.
-
-#     Pipeline:
-#       Text → FastSpeech2 (pretrained) → wav → emotion post-processing → audio
-#     """
-#     prosody = {
-#         "speed":        speed,
-#         "pitch_shift":  pitch_shift,
-#         "energy_shift": energy_shift,
-#     }
-
-#     with _inference_lock:
-#         result = fastspeech.synthesize(text, prosody, emotion=emotion)
-
-#     # ── Ensure numpy float32 ──────────────────────────────────────────────────
-#     if hasattr(result, "cpu"):
-#         result = result.cpu().numpy()
-#     result = np.asarray(result, dtype=np.float32)
-
-#     # ── Route on dimensionality ───────────────────────────────────────────────
-#     if result.ndim == 1:
-#         # Pretrained model returns wav directly — no HiFiGAN needed
-#         audio = result
-#     elif result.ndim == 2:
-#         # Mel spectrogram fallback — should not happen with pretrained model
-#         # but kept as a safety net in case vocoder tag changes
-#         raise RuntimeError(
-#             "[TTS] Received mel spectrogram from pretrained model — "
-#             "check that vocoder_tag is set in FastSpeech2Service."
-#         )
-#     else:
-#         raise RuntimeError(
-#             f"[TTS] Unexpected result shape from synthesize(): {result.shape}"
-#         )
-
-#     # ── Emotion post-processing ───────────────────────────────────────────────
-#     # Applies tempo, pitch shift, loudness, and EQ shaping per emotion.
-#     # This is what differentiates Angry/Happy/Sad/Surprise/Neutral output.
-#     audio = postprocess(audio, sr=22050, emotion=emotion)
-
-#     # ── Normalise ─────────────────────────────────────────────────────────────
-#     max_val = np.abs(audio).max()
-#     if max_val > 0:
-#         audio = audio / max_val * 0.95
-
-#     print(
-#         f"[TTS] Final audio: shape={audio.shape} "
-#         f"min={audio.min():.3f} max={audio.max():.3f} "
-#         f"emotion={emotion}"
-#     )
-#     return audio
 
 
 @functools.lru_cache(maxsize=64)
@@ -287,7 +225,7 @@ def _synthesize_cached(
     }
 
     with _inference_lock:
-        result = fastspeech.synthesize(text, prosody, emotion=emotion)
+        result = xtts.synthesize(text, prosody, emotion=emotion)
 
     if hasattr(result, "cpu"):
         result = result.cpu().numpy()
